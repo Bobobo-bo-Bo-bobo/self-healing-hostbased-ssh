@@ -1,0 +1,11 @@
+---
+mqtt:
+  broker: 'tcp://localhost:1883'
+  user: 'ssh-known_hosts_updater'
+  password: 'S3cr3tP455w0rD'
+  qos: 0
+  # insecure_ssl: false
+  # ca_file: '/etc/ssl/certs/ca-certificates.crt'
+  # User requires read access to topic
+  topic: 'ssh/pub/keys/+'
+

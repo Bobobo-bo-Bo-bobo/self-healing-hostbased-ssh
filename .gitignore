@@ -2,4 +2,4 @@ target/
 tmp/
 *.swp
 .nfs*
-
+Cargo.lock
