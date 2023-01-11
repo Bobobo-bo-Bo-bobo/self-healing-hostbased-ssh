@@ -52,7 +52,10 @@ pub fn send(
                 cfg.mqtt.broker, tickticktick, cfg.mqtt.reconnect_timeout
             );
         } else {
-            info!("connected to MQTT broker {}", cfg.mqtt.broker);
+            info!(
+                "connected to MQTT broker {} with client ID {}",
+                cfg.mqtt.broker, cfg.mqtt.client_id
+            );
             break;
         }
     }
@@ -71,6 +74,10 @@ pub fn send(
         }
     }
 
+    info!(
+        "sending data to topic {} on MQTT broker {}",
+        cfg.mqtt.topic, cfg.mqtt.broker
+    );
     let msg = paho_mqtt::message::Message::new_retained(&cfg.mqtt.topic, payload, cfg.mqtt.qos);
     if let Err(e) = mqtt_client.publish(msg) {
         bail!("sending message to MQTT broker failed - {}", e);

@@ -10,8 +10,8 @@ name = "ssh-key-collector"
 path = "src/ssh-key-collector/main.rs"
 
 [[bin]]
-name = "ssh_known_hosts-updater"
-path = "src/ssh_known_hosts-updater/main.rs"
+name = "ssh-known_hosts-updater"
+path = "src/ssh-known_hosts-updater/main.rs"
 
 [lib]
 name = "global"
@@ -24,6 +24,7 @@ gethostname = "0.4.1"
 getopts = "0.2.21"
 lazy_static = "1.4.0"
 log = "0.4.17"
+mktemp = "0.5.0"
 paho-mqtt = "0.11.1"
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }

@@ -3,13 +3,10 @@ use crate::constants;
 pub fn show_usage() {
     global::usage::show_version();
     println!(
-        "Usage: {} [-c <cfg>|--config=<cfg>] [-d <ssh_dir>|--ssh-directory=<ssh_dir>] [-h|--help] [-q|--quiet] [-C|--check] [-D|--debug] [-V|--version]
+        "Usage: {} [-c <cfg>|--config=<cfg>] [-h|--help] [-q|--quiet] [-C|--check] [-D|--debug] [-V|--version]
 
     -c <cfg>                    Read configuration from file <cfg>
     --config=<cfg>              Default: {}
-
-    -d <ssh_dir>
-    --ssh-directory=<ssh_dir>   Default: {}
 
     -h                          Shows this text
     --help
@@ -29,6 +26,5 @@ pub fn show_usage() {
 ",
         env!("CARGO_BIN_NAME"),
         constants::DEFAULT_CONFIG_FILE,
-        global::constants::DEFAULT_SSH_DIRECTORY,
     );
 }

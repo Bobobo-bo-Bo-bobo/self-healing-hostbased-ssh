@@ -10,15 +10,15 @@ mqtt:
   topic: 'ssh/pub/keys'
 ssh-keys:
   # List of SSH public keys to be published
-  # files:
-  #   - '/etc/ssh/ssh_host_ecdsa_key.pub'
-  #   - '/etc/ssh/ssh_host_ed25519_key.pub'
-  #   - '/etc/ssh/ssh_host_rsa_key.pub'
+  files:
+    - '/etc/ssh/ssh_host_ecdsa_key.pub'
+    - '/etc/ssh/ssh_host_ed25519_key.pub'
+    - '/etc/ssh/ssh_host_rsa_key.pub'
   # Override the default - hostname - for ssh_known_hosts
-  #  hostname:
-  #    - 'server'
-  #    - '10.1.2.3'
-  #    - 'server.fqdn'
+  hostname:
+    - 'server'
+    - '10.1.2.3'
+    - 'server.fqdn'
   # Override the comment field in ssh_known_hosts. Default: comment from public key file
   comment: 'this is a comment'
 

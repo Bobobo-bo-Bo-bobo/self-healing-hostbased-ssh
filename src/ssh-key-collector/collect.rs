@@ -33,6 +33,6 @@ fn parse_key_data(raw: &str) -> global::payload::Keydata {
     global::payload::Keydata {
         key_type: splitted[0].to_string(),
         key: splitted[1].to_string(),
-        comment: splitted[2].to_string(),
+        comment: splitted[2].trim().to_string(),
     }
 }

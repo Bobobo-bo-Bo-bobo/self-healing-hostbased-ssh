@@ -8,4 +8,5 @@ mqtt:
   # ca_file: '/etc/ssl/certs/ca-certificates.crt'
   # User requires read access to topic
   topic: 'ssh/pub/keys/+'
-
+ssh:
+  known_hosts_file: '/etc/ssh/ssh_known_hosts'
