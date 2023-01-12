@@ -57,14 +57,14 @@ pub fn update(
                 update = true;
             } else if let Some(oldvalue) = ssh_known_hosts.get(&key) {
                 debug!("processing non-empty data for {}", key);
-                if *oldvalue == msg {
+                if *oldvalue != msg {
                     debug!("key information for {} changed, updating data", key);
                     ssh_known_hosts.insert(key, msg);
                     update = true;
                 } else {
-                    debug!(
-                        "key information for {} has not changed, skipping update",
-                        key
+                    info!(
+                        "key information for {} has not changed, skipping update of {}",
+                        key, cfg.ssh.known_hosts_file,
                     );
                 }
             } else {
