@@ -1,0 +1,7 @@
+---
+mqtt:
+  broker: 'tcp://localhost:1883'
+  user: 'ssh-pubkey-publisher'
+  password: 'S3cr3t'
+  qos: 0
+  topic: 'ssh/pub/keys'

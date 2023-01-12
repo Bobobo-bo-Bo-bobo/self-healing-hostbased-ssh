@@ -13,6 +13,10 @@ path = "src/ssh-key-collector/main.rs"
 name = "ssh-known_hosts-updater"
 path = "src/ssh-known_hosts-updater/main.rs"
 
+[[bin]]
+name = "ssh-delete-key_data"
+path = "src/ssh-delete-key_data/main.rs"
+
 [lib]
 name = "global"
 path = "src/global/lib.rs"
