@@ -41,7 +41,7 @@ fn validate(cfg: &Configuration) -> Result<(), Box<dyn Error>> {
 
     if cfg.mqtt.topic.is_empty() || (!cfg.mqtt.topic.contains('+') && !cfg.mqtt.topic.contains('#'))
     {
-        bail!("invalid MQTT topic, wildcards are not allowed in publishing topic")
+        bail!("invalid MQTT topic, wildcards must be present in subscribed topic")
     }
 
     if cfg.mqtt.timeout == 0 {
