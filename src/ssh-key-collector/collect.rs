@@ -18,8 +18,8 @@ pub fn read_key_files(
         };
 
         let mut parsed_key = parse_key_data(&raw);
-        if !cfg.ssh_keys.comment.is_empty() {
-            parsed_key.comment = cfg.ssh_keys.comment.clone();
+        if let Some(v) = &cfg.ssh_keys.comment {
+            parsed_key.comment = v.clone();
         }
 
         result.keys.push(parsed_key);

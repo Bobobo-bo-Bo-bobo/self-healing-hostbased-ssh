@@ -22,8 +22,7 @@ pub struct SSHKeys {
     pub files: Vec<String>,
     #[serde(default)]
     pub hostname: Vec<String>,
-    #[serde(default)]
-    pub comment: String,
+    pub comment: Option<String>,
 }
 
 pub fn parse_config_file(f: &str) -> Result<Configuration, Box<dyn Error>> {
