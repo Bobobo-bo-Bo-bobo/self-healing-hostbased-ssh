@@ -1,9 +1,12 @@
 use crate::constants;
+
+use log::{error, warn};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
 use std::error::Error;
 use std::time::Duration;
+use std::{thread, time};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct MQTT {
@@ -82,4 +85,73 @@ pub fn client_builder(cfg: &MQTT) -> Result<paho_mqtt::client::Client, Box<dyn E
 
     let client = paho_mqtt::client::Client::new(client_opts)?;
     Ok(client)
+}
+
+pub fn connect(
+    cfg: &MQTT,
+    client: &paho_mqtt::client::Client,
+    option: &paho_mqtt::connect_options::ConnectOptions,
+) -> Result<paho_mqtt::server_response::ServerResponse, Box<dyn Error>> {
+    let mut ticktock: u64 = 0;
+    let cstatus: paho_mqtt::server_response::ServerResponse;
+    let one_second = time::Duration::from_secs(1);
+
+    loop {
+        let mco = option.clone();
+        cstatus = match client.connect(mco) {
+            Err(e) => {
+                error!("connection to MQTT broker {} failed: {}", cfg.broker, e);
+                if ticktock > cfg.reconnect_timeout {
+                    return Err(Box::new(e));
+                }
+                thread::sleep(one_second);
+                ticktock += 1;
+                warn!(
+                    "retrying to connect to MQTT broker {} - attempt {}/{}",
+                    cfg.broker, ticktock, cfg.reconnect_timeout
+                );
+                continue;
+            }
+            Ok(v) => v,
+        };
+        break;
+    }
+    Ok(cstatus)
+}
+
+pub fn reconnect(
+    cfg: &MQTT,
+    client: &paho_mqtt::client::Client,
+) -> Result<paho_mqtt::server_response::ServerResponse, Box<dyn Error>> {
+    let mut ticktock: u64 = 0;
+    let cstatus: paho_mqtt::server_response::ServerResponse;
+    let one_second = time::Duration::from_secs(1);
+
+    loop {
+        cstatus = match client.reconnect() {
+            Err(e) => {
+                error!("reconnect to MQTT broker {} failed: {}", cfg.broker, e);
+                if ticktock > cfg.reconnect_timeout {
+                    return Err(Box::new(e));
+                }
+                thread::sleep(one_second);
+                ticktock += 1;
+                warn!(
+                    "retrying to reconnect to MQTT broker {} - attempt {}/{}",
+                    cfg.broker, ticktock, cfg.reconnect_timeout
+                );
+                continue;
+            }
+            Ok(v) => v,
+        };
+        break;
+    }
+    Ok(cstatus)
+}
+
+pub fn disconnect(client: &paho_mqtt::client::Client) -> Result<(), Box<dyn Error>> {
+    if let Err(e) = client.disconnect(None) {
+        return Err(Box::new(e));
+    };
+    Ok(())
 }

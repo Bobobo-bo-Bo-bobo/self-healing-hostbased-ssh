@@ -1,14 +1,11 @@
 use crate::config;
 use crate::constants;
 
-use log::{error, info, warn};
+use log::{info, warn};
 use simple_error::bail;
 use std::error::Error;
-use std::{thread, time};
 
 pub fn send(cfg: &config::Configuration, hostlist: Vec<String>) -> Result<(), Box<dyn Error>> {
-    let one_second = time::Duration::from_secs(1);
-
     let mqtt_connection = match global::mqtt::connection_builder(&cfg.mqtt) {
         Ok(v) => v,
         Err(e) => {
@@ -24,39 +21,18 @@ pub fn send(cfg: &config::Configuration, hostlist: Vec<String>) -> Result<(), Bo
     };
 
     info!("connecting to MQTT broker {}", cfg.mqtt.broker);
-    let mut tickticktick: u64 = 0;
-
-    loop {
-        let mco = mqtt_connection.clone();
-        if let Err(e) = mqtt_client.connect(mco) {
-            error!(
-                "connection to MQTT broker {} failed: {}",
-                cfg.mqtt.broker, e
-            );
-            if tickticktick > cfg.mqtt.reconnect_timeout {
-                return Err(Box::new(e));
-            }
-            thread::sleep(one_second);
-            tickticktick += 1;
-            warn!(
-                "retrying to connect to MQTT broker {} - attempt {}/{}",
-                cfg.mqtt.broker, tickticktick, cfg.mqtt.reconnect_timeout
-            );
-        } else {
-            info!(
-                "connected to MQTT broker {} with client ID {}",
-                cfg.mqtt.broker, cfg.mqtt.client_id
-            );
-            break;
-        }
-    }
+    global::mqtt::connect(&cfg.mqtt, &mqtt_client, &mqtt_connection)?;
+    info!(
+        "connected to MQTT broker {} with client ID {}",
+        cfg.mqtt.broker, cfg.mqtt.client_id
+    );
 
     if !mqtt_client.is_connected() {
         warn!(
             "connection to MQTT broker {} lost, reconnecting",
             cfg.mqtt.broker
         );
-        if let Err(e) = mqtt_client.reconnect() {
+        if let Err(e) = global::mqtt::reconnect(&cfg.mqtt, &mqtt_client) {
             bail!(
                 "reconnection to MQTT broker {} failed - {}",
                 cfg.mqtt.broker,
@@ -82,6 +58,11 @@ pub fn send(cfg: &config::Configuration, hostlist: Vec<String>) -> Result<(), Bo
             bail!("sending message to MQTT broker failed - {}", e);
         }
     }
+
+    info!("disconnecting from MQTT broker {}", cfg.mqtt.broker);
+    if let Err(e) = global::mqtt::disconnect(&mqtt_client) {
+        warn!("diconnect from MQTT broker failed: {}", e);
+    };
 
     Ok(())
 }

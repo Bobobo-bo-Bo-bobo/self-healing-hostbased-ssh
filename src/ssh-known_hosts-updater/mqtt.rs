@@ -1,45 +1,22 @@
 use crate::config;
 
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use simple_error::bail;
 use std::error::Error;
 use std::sync::mpsc;
-use std::{thread, time};
 
 pub fn run(
     cfg: &config::Configuration,
     sender: mpsc::Sender<paho_mqtt::message::Message>,
 ) -> Result<(), Box<dyn Error>> {
-    let one_second = time::Duration::from_secs(1);
     let conn = global::mqtt::connection_builder(&cfg.mqtt)?;
     let client = global::mqtt::client_builder(&cfg.mqtt)?;
-    let cstatus: paho_mqtt::ServerResponse;
+    let cstatus = global::mqtt::connect(&cfg.mqtt, &client, &conn)?;
 
-    let mut ticktock: u64 = 0;
-
-    loop {
-        let mco = conn.clone();
-        cstatus = match client.connect(mco) {
-            Err(e) => {
-                error!(
-                    "connection to MQTT broker {} failed: {}",
-                    cfg.mqtt.broker, e
-                );
-                if ticktock > cfg.mqtt.reconnect_timeout {
-                    return Err(Box::new(e));
-                }
-                thread::sleep(one_second);
-                ticktock += 1;
-                warn!(
-                    "retrying to connect to MQTT broker {} - attempt {}/{}",
-                    cfg.mqtt.broker, ticktock, cfg.mqtt.reconnect_timeout
-                );
-                continue;
-            }
-            Ok(v) => v,
-        };
-        break;
-    }
+    info!(
+        "connected to MQTT broker {} with client ID {}",
+        cfg.mqtt.broker, cfg.mqtt.client_id
+    );
 
     if let Some(v) = cstatus.connect_response() {
         if !v.session_present {
@@ -67,7 +44,7 @@ pub fn run(
             None => {
                 if !client.is_connected() {
                     warn!("connection to broker was lost, reconnecting");
-                    client.reconnect()?;
+                    global::mqtt::reconnect(&cfg.mqtt, &client)?;
                 }
             }
         }
