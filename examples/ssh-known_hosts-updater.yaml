@@ -1,12 +1,48 @@
 ---
 mqtt:
+  # Mandatory: URL of the MQTT broker, can be tcp:// for MQTT or ssl:// for MQTTS
   broker: 'tcp://localhost:1883'
+
+  # Mandatory: User on MQTT broker for authentication.
+  # The user requires read access to the MQTT topic
+  # and subtopics
   user: 'ssh-known_hosts_updater'
-  password: 'S3cr3tP455w0rD'
+
+  # Mandatory: Password for MQTT broker for authentication
+  password: 'S3cr3t'
+
+  # QoS for MQTT messages
+  # Default: 0
   qos: 0
-  # insecure_ssl: false
-  # ca_file: '/etc/ssl/certs/ca-certificates.crt'
-  # User requires read access to topic
+
+  # Mandatory: MQTT topic containing the SSH key data (<topic>/<servername>)
+  # This topic *must* contain wildcards
   topic: 'ssh/pub/keys/+'
+
+  # Optional: For SSL encrypted connection, the path to the
+  # CA file for validation of the server certificate
+  ca_cert: '/path/to/ca-cert.crt'
+
+  # Optional: Clean session information on connect or reconnect.
+  # Very seldom useful. Default: false
+  clean_session: false
+
+  # Optional: Set MQTT client id. MQTT standard limits the client ID to 23 bytes of ASCII data
+  # !!! ATTENTION !!! The client id *MUST* *BE* *UNIQUE*!
+  # If not set a random 23 byte alphanumeric client ID will be generated
+  # client_id: 'unique_client_id'
+
+  # Optional: Disable SSL verification of the MQTT broker SSL certificate.
+  # Should not be used in a productive environment
+  # Default: false
+  insecure_ssl: false
+
+  # Optional: Timeout in secounds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  reconnect_timeout: 60
+
+# Optional: Override default settings for SSH
 ssh:
+  # Optional: SSH known hosts file.
+  # Default: /etc/ssh/ssh_known_hosts
   known_hosts_file: '/etc/ssh/ssh_known_hosts'

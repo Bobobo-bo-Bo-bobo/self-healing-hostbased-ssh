@@ -48,3 +48,11 @@ fn validate_url(s: &str) -> Result<(), Box<dyn Error>> {
     let _parsed = Url::parse(s)?;
     Ok(())
 }
+
+pub fn validate_hostname(h: &str) -> Result<(), Box<dyn Error>> {
+    if h.contains('/') || h.contains('+') || h.contains('#') {
+        bail!("invalid hostname");
+    }
+    Ok(())
+}
+

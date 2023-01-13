@@ -84,6 +84,13 @@ fn main() {
         process::exit(1);
     }
 
+    for host in opts.free.iter() {
+        if let Err(e) = config::validate_hostname(host) {
+            error!("{}", e);
+            process::exit(1);
+        }
+    }
+
     if let Err(e) = mqtt::send(&configuration, opts.free) {
         error!("MQTT operation failed: {}", e);
         process::exit(1);
