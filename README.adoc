@@ -1,0 +1,271 @@
+= self-healing-hostbased-ssh - High performance computing - self healing hostbased SSH login for compute nodes
+:source-highlighter: rouge
+:rouge-style: gruvbox
+:stylesheet: asciidoc.css
+:toc: left
+
+== Preface
+Distributed computing in a HPC cluster usually requires password less SSH between the allocated servers of a solver job.
+
+For small environments user are responsible to handle passwordless login using their own SSH keys and their own `~/.ssh/authorized_keys` file.
+
+This is not feasible for larger setups. In these environments hostbased authentication for passwordless connections are in use.
+To allow smooth operation the administrators of the clusters are responsible to maintain SSH keys of *all* servers and make sure *all* local `/etc/ssh/ssh_known_hosts` files
+are up to date.
+
+Usually this will be archived by:
+
+  * storing and distributing public/private key files for *each* server
+  * using the same public/private key for *all* servers
+
+Both solutions are either work intensive and error prone (the former) or plain insecure (the latter, a compromise of a single server will compromise *all* servers).
+
+This proof of concept provides an automated way using MQTT as message broker (in theory any reliable messaging system with a persistent data storage can be used) to
+automate updates of `/etc/ssh/ssh_known_hosts` if a new node has been added or any node changes one of it's SSH keys.
+
+== Operational concept
+A running and configured MQTT broker with persistent storage is required. Depending on the environment this could even be a https://ypbind.de/maus/notes/mqtt_ha_setup/index.html[high-available MQTT broker^].
+
+Every server runs `ssh-known_hosts-updater` as a service. `ssh-known_hosts-updater` connects to a MQTT broker fetch SSH key information from the MQTT broker on startup and updates the `ssh_known_hosts` if
+changes of SSH key of any other server was sent to the MQTT broker.
+
+Also on every server runs `ssh-key-collector` either at startup or at regular intervals, e.g. as systemd timer unit or classic cronjob. It's job is to read public SSH keys and send them to the MQTT broker.
+
+If keydata should be remove from the MQTT broker `ssh-delete-key_data` can be used to do the job.
+
+== Tools for managing SSH public keys and ssh_known_hosts
+This proof of concept comes with three tools to automate SSH key management and MQTT broker interaction.
+
+=== ssh-delete-key_data
+`ssh-delete-key_data` removes SSH key data for a list of servers from the persistent storage on the MQTT broker.
+
+Command line options for `ssh-delete-key_data`:
+
+[width="100%",cols="<34%,<41%,<25%",options="header",]
+|===
+|_Option_ |_Parameter_ |_Note_
+|`-C` / `--check` |- | Check syntax of configuration file and exit
+|`-D` / `--debug` |- |Show debug messages
+|`-V` / `--version` |- |Show version information
+|`-c <cfg>` / `--config=<cfg>` |Read configuration from `<cfg>` |Default: `/etc/ssh-delete-key_data.yaml`
+|`-h` / `--help` |- |Show help text
+|`-q` / `--quiet` |- |Quiet operation. Only warnings and errors are shown
+|===
+
+It requires a list of hostnames to be removed from the persistent MQTT storage. The SSH key data is expected to be directly below the topic in the configuration file.
+Obviously the MQTT user requires write access to the topic.
+
+The configuration file - default `/etc/ssh-delete-key_data.yaml` - contains the information for the MQTT connection:
+
+[source,yaml]
+----
+---
+mqtt:
+  # Mandatory: URL of the MQTT broker, can be tcp:// for MQTT or ssl:// for MQTTS
+  broker: 'tcp://localhost:1883'
+
+  # Mandatory: User on MQTT broker for authentication.
+  # The user requires write access to the MQTT topic and
+  # it's subtopics (at least one level)
+  user: 'ssh-pubkey-publisher'
+
+  # Mandatory: Password for MQTT broker for authentication
+  password: 'S3cr3t'
+
+  # QoS for MQTT messages
+  # Default: 0
+  qos: 0
+
+  # Mandatory: MQTT topic containing the SSH key data (<topic>/<servername>)
+  topic: 'ssh/pub/keys'
+
+  # Optional: For SSL encrypted connection, the path to the
+  # CA file for validation of the server certificate
+  ca_cert: '/path/to/ca-cert.crt'
+
+  # Optional: Clean session information on connect or reconnect.
+  # Very seldom useful. Default: false
+  clean_session: false
+
+  # Optional: Set MQTT client id. MQTT standard limits the client ID to 23 bytes of ASCII data
+  # !!! ATTENTION !!! The client id *MUST* *BE* *UNIQUE*!
+  # If not set, a random 23 byte alphanumeric client ID will be generated
+  # client_id: 'unique_client_id'
+
+  # Optional: Disable SSL verification of the MQTT broker SSL certificate.
+  # Should not be used in a productive environment
+  # Default: false
+  insecure_ssl: false
+
+  # Optional: Timeout in secounds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  reconnect_timeout: 60
+----
+
+=== ssh-key-collector
+`ssh-key-collector` reads SSH public keys - by default matching `/etc/ssh/ssh_host_.*_key.pub` - and send the content to the MQTT broker.
+By default the hostname field for `ssh_known_host` will be set to the output of the `hostname` command but can be overriden.
+
+This command should be at least run at startup and can optionally be run at regular intervals, e.g. as cron job or systemd timer unit.
+
+Command line options for `ssh-key-collector` are:
+
+[width="100%",cols="<34%,<41%,<25%",options="header",]
+|===
+|_Option_ |_Parameter_ |_Note_
+|`-C` / `--check` |- | Check syntax of configuration file and exit
+|`-D` / `--debug` |- |Show debug messages
+|`-V` / `--version` |- |Show version information
+|`-c <cfg>` / `--config=<cfg>` |Read configuration from `<cfg>` |Default: `/etc/ssh-key-collector.yaml`
+|`-h` / `--help` |- |Show help text
+|`-q` / `--quiet` |- |Quiet operation. Only warnings and errors are shown
+|===
+
+The configuration file - default is `/etc/ssh-key-collector.yaml` - contains the MQTT connection options and optional overrides
+for SSH file or data for the `ssh_known_hosts` file:
+
+[source,yaml]
+----
+---
+mqtt:
+  # Mandatory: URL of the MQTT broker, can be tcp:// for MQTT or ssl:// for MQTTS
+  broker: 'tcp://localhost:1883'
+
+  # Mandatory: User on MQTT broker for authentication.
+  # The user requires write access to the MQTT topic and
+  # it's subtopics (at least one level)
+  user: 'ssh-pubkey-publisher'
+
+  # Mandatory: Password for MQTT broker for authentication
+  password: 'S3cr3t'
+
+  # QoS for MQTT messages
+  # Default: 0
+  qos: 0
+
+  # Mandatory: MQTT topic containing the SSH key data (<topic>/<servername>)
+  topic: 'ssh/pub/keys'
+
+  # Optional: For SSL encrypted connection, the path to the
+  # CA file for validation of the server certificate
+  ca_cert: '/path/to/ca-cert.crt'
+
+  # Optional: Clean session information on connect or reconnect.
+  # Very seldom useful. Default: false
+  clean_session: false
+
+  # Optional: Set MQTT client id. MQTT standard limits the client ID to 23 bytes of ASCII data
+  # !!! ATTENTION !!! The client id *MUST* *BE* *UNIQUE*!
+  # If not set, a random 23 byte alphanumeric client ID will be generated
+  # client_id: 'unique_client_id'
+
+  # Optional: Disable SSL verification of the MQTT broker SSL certificate.
+  # Should not be used in a productive environment
+  # Default: false
+  insecure_ssl: false
+
+  # Optional: Timeout in secounds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  reconnect_timeout: 60
+
+# Optional: Overrides and/or additional information for SSH keys
+ssh-keys:
+  # Optional: List of SSH public keys to be published.
+  # Default: Every file matching /etc/ssh/ssh_host_.*_key.pub
+  files:
+    - '/etc/ssh/ssh_host_ecdsa_key.pub'
+    - '/etc/ssh/ssh_host_ed25519_key.pub'
+    - '/etc/ssh/ssh_host_rsa_key.pub'
+
+  # Optional: Override hostname field to be used in ssh_known_hosts
+  # Default: hostname
+  hostname:
+    - 'server'
+    - '10.1.2.3'
+    - 'server.fqdn'
+
+  # Optional: Override the comment field in ssh_known_hosts.
+  # Default: comment from public key file
+  comment: 'this is a comment'
+----
+
+=== ssh-known_hosts-updater
+`ssh-known_hosts-updater` is a service maintaining a persistent MQTT connection to the broker. Upon start of the MQTT connection, it receives all persistent MQTT data from the broker and updates the `ssh_known_hosts` file.
+If any SSH key changes - by `ssh-key-collector` - or removals - by `ssh-delete-key_data` - are received, the `ssh_known_hosts` will be rewritten accordingly.
+
+By default the `ssh_known_hosts` file is `/etc/ssh/ssh_known_hosts` but this can be overriden in the configuration file.
+
+`ssh-known_hosts-updater` accepts the following command line parameters:
+
+[width="100%",cols="<34%,<41%,<25%",options="header",]
+|===
+|_Option_ |_Parameter_ |_Note_
+|`-C` / `--check` |- | Check syntax of configuration file and exit
+|`-D` / `--debug` |- |Show debug messages
+|`-V` / `--version` |- |Show version information
+|`-c <cfg>` / `--config=<cfg>` |Read configuration from `<cfg>` |Default: `/etc/ssh-known_hosts-updater.yaml`
+|`-h` / `--help` |- |Show help text
+|`-q` / `--quiet` |- |Quiet operation. Only warnings and errors are shown
+|===
+
+The configuration file - default `/etc/ssh-known_hosts-updater.yaml` - contains at least the MQTT connection parameters and optionally the location of the `ssh_known_hosts` file (default is `/etc/ssh/ssh_known_hosts`):
+
+[source,yaml]
+----
+---
+mqtt:
+  # Mandatory: URL of the MQTT broker, can be tcp:// for MQTT or ssl:// for MQTTS
+  broker: 'tcp://localhost:1883'
+
+  # Mandatory: User on MQTT broker for authentication.
+  # The user requires read access to the MQTT topic
+  # and subtopics
+  user: 'ssh-known_hosts_updater'
+
+  # Mandatory: Password for MQTT broker for authentication
+  password: 'S3cr3t'
+
+  # QoS for MQTT messages
+  # Default: 0
+  qos: 0
+
+  # Mandatory: MQTT topic containing the SSH key data (<topic>/<servername>)
+  # This topic *must* contain wildcards
+  topic: 'ssh/pub/keys/+'
+
+  # Optional: For SSL encrypted connection, the path to the
+  # CA file for validation of the server certificate
+  ca_cert: '/path/to/ca-cert.crt'
+
+  # Optional: Clean session information on connect or reconnect.
+  # Very seldom useful. Default: false
+  clean_session: false
+
+  # Optional: Set MQTT client id. MQTT standard limits the client ID to 23 bytes of ASCII data
+  # !!! ATTENTION !!! The client id *MUST* *BE* *UNIQUE*!
+  # If not set, a random 23 byte alphanumeric client ID will be generated
+  # client_id: 'unique_client_id'
+
+  # Optional: Disable SSL verification of the MQTT broker SSL certificate.
+  # Should not be used in a productive environment
+  # Default: false
+  insecure_ssl: false
+
+  # Optional: Timeout in secounds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  reconnect_timeout: 60
+
+# Optional: Override default settings for SSH
+ssh:
+  # Optional: SSH known hosts file.
+  # Default: /etc/ssh/ssh_known_hosts
+  known_hosts_file: '/etc/ssh/ssh_known_hosts'
+----
+
+== Lifecycle of servers (in terms of SSH keys)
+In terms of SSH keys, the lifecycle of a server can be broken down into three parts:
+
+* adding a new server - new SSH keys must be added to `/etc/ssh/ssh_known_hosts` on all servers
+* reinstalling a server - keys will be regenerated and must be updated in `/etc/ssh/ssh_known_hosts` on all servers
+* decomissioning a server - keys must be removed from the brokers persistent storage and from `/etc/ssh/ssh_known_hosts` of all servers
+
