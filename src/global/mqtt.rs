@@ -101,15 +101,22 @@ pub fn connect(
         cstatus = match client.connect(mco) {
             Err(e) => {
                 error!("connection to MQTT broker {} failed: {}", cfg.broker, e);
-                if ticktock > cfg.reconnect_timeout {
+                if cfg.reconnect_timeout != 0 && ticktock > cfg.reconnect_timeout {
                     return Err(Box::new(e));
                 }
                 thread::sleep(one_second);
                 ticktock += 1;
-                warn!(
-                    "retrying to connect to MQTT broker {} - attempt {}/{}",
-                    cfg.broker, ticktock, cfg.reconnect_timeout
-                );
+                if cfg.reconnect_timeout != 0 {
+                    warn!(
+                        "retrying to connect to MQTT broker {} - attempt {}/{}",
+                        cfg.broker, ticktock, cfg.reconnect_timeout
+                    );
+                } else {
+                    warn!(
+                        "retrying to connect to MQTT broker {} - attempt {}",
+                        cfg.broker, ticktock
+                    );
+                }
                 continue;
             }
             Ok(v) => v,
@@ -131,15 +138,22 @@ pub fn reconnect(
         cstatus = match client.reconnect() {
             Err(e) => {
                 error!("reconnect to MQTT broker {} failed: {}", cfg.broker, e);
-                if ticktock > cfg.reconnect_timeout {
+                if cfg.reconnect_timeout != 0 && ticktock > cfg.reconnect_timeout {
                     return Err(Box::new(e));
                 }
                 thread::sleep(one_second);
                 ticktock += 1;
-                warn!(
-                    "retrying to reconnect to MQTT broker {} - attempt {}/{}",
-                    cfg.broker, ticktock, cfg.reconnect_timeout
-                );
+                if cfg.reconnect_timeout != 0 {
+                    warn!(
+                        "retrying to reconnect to MQTT broker {} - attempt {}/{}",
+                        cfg.broker, ticktock, cfg.reconnect_timeout
+                    );
+                } else {
+                    warn!(
+                        "retrying to reconnect to MQTT broker {} - attempt {}",
+                        cfg.broker, ticktock
+                    );
+                }
                 continue;
             }
             Ok(v) => v,
