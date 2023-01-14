@@ -1,15 +1,15 @@
-= self-healing-hostbased-ssh - High performance computing - self healing hostbased SSH login for compute nodes
+= self-healing-host-based-ssh - High performance computing - self healing host-based SSH login for compute nodes
 :source-highlighter: rouge
 :rouge-style: gruvbox
 :stylesheet: asciidoc.css
 :toc: left
 
 == Preface
-Distributed computing in a HPC cluster usually requires password less SSH between the allocated servers of a solver job.
+Distributed computing in a HPC cluster usually requires password-less SSH between the allocated servers of a solver job.
 
-For small environments user are responsible to handle passwordless login using their own SSH keys and their own `~/.ssh/authorized_keys` file.
+For small environments user are responsible to handle password-less login using their own SSH keys and their own `~/.ssh/authorized_keys` file.
 
-This is not feasible for larger setups. In these environments hostbased authentication for passwordless connections are in use.
+This is not feasible for larger setups. In these environments host-based authentication for password-less connections are in use.
 To allow smooth operation the administrators of the clusters are responsible to maintain SSH keys of *all* servers and make sure *all* local `/etc/ssh/ssh_known_hosts` files
 are up to date.
 
@@ -29,9 +29,9 @@ A running and configured MQTT broker with persistent storage is required. Depend
 Every server runs `ssh-known_hosts-updater` as a service. `ssh-known_hosts-updater` connects to a MQTT broker fetch SSH key information from the MQTT broker on startup and updates the `ssh_known_hosts` if
 changes of SSH key of any other server was sent to the MQTT broker.
 
-Also on every server runs `ssh-key-collector` either at startup or at regular intervals, e.g. as systemd timer unit or classic cronjob. It's job is to read public SSH keys and send them to the MQTT broker.
+Also on every server runs `ssh-key-collector` either at startup or at regular intervals, e.g. as systemd timer unit or classic cron job. It's job is to read public SSH keys and send them to the MQTT broker.
 
-If keydata should be remove from the MQTT broker `ssh-delete-key_data` can be used to do the job.
+If key data should be remove from the MQTT broker `ssh-delete-key_data` can be used to do the job.
 
 == Tools for managing SSH public keys and ssh_known_hosts
 This proof of concept comes with three tools to automate SSH key management and MQTT broker interaction.
@@ -97,14 +97,14 @@ mqtt:
   # Default: false
   insecure_ssl: false
 
-  # Optional: Timeout in secounds for MQTT connect and reconnects
-  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  # Optional: Timeout in seconds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefinitely (should be used with care)
   reconnect_timeout: 60
 ----
 
 === ssh-key-collector
 `ssh-key-collector` reads SSH public keys - by default matching `/etc/ssh/ssh_host_.*_key.pub` - and send the content to the MQTT broker.
-By default the hostname field for `ssh_known_host` will be set to the output of the `hostname` command but can be overriden.
+By default the hostname field for `ssh_known_host` will be set to the output of the `hostname` command but can be overridden.
 
 This command should be at least run at startup and can optionally be run at regular intervals, e.g. as cron job or systemd timer unit.
 
@@ -164,8 +164,8 @@ mqtt:
   # Default: false
   insecure_ssl: false
 
-  # Optional: Timeout in secounds for MQTT connect and reconnects
-  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  # Optional: Timeout in seconds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefinitely (should be used with care)
   reconnect_timeout: 60
 
 # Optional: Overrides and/or additional information for SSH keys
@@ -193,7 +193,7 @@ ssh-keys:
 `ssh-known_hosts-updater` is a service maintaining a persistent MQTT connection to the broker. Upon start of the MQTT connection, it receives all persistent MQTT data from the broker and updates the `ssh_known_hosts` file.
 If any SSH key changes - by `ssh-key-collector` - or removals - by `ssh-delete-key_data` - are received, the `ssh_known_hosts` will be rewritten accordingly.
 
-By default the `ssh_known_hosts` file is `/etc/ssh/ssh_known_hosts` but this can be overriden in the configuration file.
+By default the `ssh_known_hosts` file is `/etc/ssh/ssh_known_hosts` but this can be overridden in the configuration file.
 
 `ssh-known_hosts-updater` accepts the following command line parameters:
 
@@ -251,8 +251,8 @@ mqtt:
   # Default: false
   insecure_ssl: false
 
-  # Optional: Timeout in secounds for MQTT connect and reconnects
-  # A value of 0 will cause connect/reconnect to try indefintely (should be used with care)
+  # Optional: Timeout in seconds for MQTT connect and reconnects
+  # A value of 0 will cause connect/reconnect to try indefinitely (should be used with care)
   reconnect_timeout: 60
 
 # Optional: Override default settings for SSH
@@ -267,5 +267,26 @@ In terms of SSH keys, the lifecycle of a server can be broken down into three pa
 
 * adding a new server - new SSH keys must be added to `/etc/ssh/ssh_known_hosts` on all servers
 * reinstalling a server - keys will be regenerated and must be updated in `/etc/ssh/ssh_known_hosts` on all servers
-* decomissioning a server - keys must be removed from the brokers persistent storage and from `/etc/ssh/ssh_known_hosts` of all servers
+* decommissioning a server - keys must be removed from the brokers persistent storage and from `/etc/ssh/ssh_known_hosts` of all servers
+
+=== Adding a new server
+After the installation and configuration of a new server, `ssh-key-collector` will send the new public SSH host keys to the MQTT broker.
+The `ssh-known_hosts-updater` service on the new server will publish the `ssh_known_hosts` file with key data from the MQTT broker and
+the `ssh-known_hosts-updater` on all other servers will receive the new SSH public keys via MQTT and update their `ssh_known_hosts` file accordingly.
+
+Servers currently offline will receive the new data upon start of `ssh-known_hosts-updater` which will update the `ssh_known_hosts` file.
+
+=== Reinstalling a server
+If a server was reinstalled, the SSH service usually generate new SSH key pairs. The next run of `ssh-key-collector` will send the new SSH public keys to the MQTT broker.
+All servers running `ssh-known_hosts-updater` will receive the changed public keys and update their `ssh_known_hosts` file accordingly.
+
+Servers currently offline will receive the new data upon start of `ssh-known_hosts-updater` which will update the `ssh_known_hosts` file.
+
+=== Decommissioning a server
+Although public SSH keys are not sensitive information, old SSH key data should be removed to reduce disk consumption of the persistent storage on the MQTT broker.
+Either the client tool, e.g. `mosquitto_pub` can be used to remove persistent data or `ssh-delete-key_data` can be used for this specific task.
+
+Upon removal, all servers running `ssh-known_hosts-updater` will receive a notification of the removal (an empty, persistent MQTT message) and update their `ssh_known_host` file.
+
+Servers currently offline will receive the new data upon start of `ssh-known_hosts-updater` which will update the `ssh_known_hosts` file.
 
