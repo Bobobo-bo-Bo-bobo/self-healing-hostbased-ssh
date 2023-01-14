@@ -4,6 +4,11 @@
 :stylesheet: asciidoc.css
 :toc: left
 
+== Repositories
+
+* Primary development repository: https://git.ypbind.de/cgit/self-healing-hostbased-ssh
+* Backup repository: https://github.com/Bobobo-bo-Bo-bobo/self-healing-hostbased-ssh
+
 == Preface
 Distributed computing in a HPC cluster usually requires password-less SSH between the allocated servers of a solver job.
 
