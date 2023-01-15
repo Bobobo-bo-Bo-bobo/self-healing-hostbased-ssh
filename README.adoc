@@ -315,3 +315,10 @@ all affected servers.
 
 For smooth operation, it's important to fetch all public SSH keys from all cluster servers by running `ssh-key-collector` on all servers.
 
+=== Structuring grouping instead of a flat hierarchy
+Instead of a flat hierarchy public key data can be grouped by using MQTT topics. Additionaly, different MQTT user with separate ACL rules can be configured, e.g.:
+
+* Cluster CLU-001: Topic: `corp/cluster/ssh_keys/clu-001`, Users: `ssh-key-collector-clu-001` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-001` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-001` for `ssh-delete-key_data`
+* Cluster CLU-002: Topic: `corp/cluster/ssh_keys/clu-002`, Users: `ssh-key-collector-clu-002` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-002` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-002` for `ssh-delete-key_data`
+* Cluster CLU-003: Topic: `corp/cluster/ssh_keys/clu-003`, Users: `ssh-key-collector-clu-003` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-003` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-003` for `ssh-delete-key_data`
+* Cluster CLU-004: Topic: `corp/cluster/ssh_keys/clu-004`, Users: `ssh-key-collector-clu-004` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-004` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-004` for `ssh-delete-key_data`
