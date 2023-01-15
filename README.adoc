@@ -303,20 +303,20 @@ MQTT has three values for QoS:
 * 1 - broker confirms message received
 * 2 - broker confirms message received and client confirms confirmation receival
 
-In an HPC environment, (ethernet) network can be considered as reliable. To reduce overhead, a QoS of 0 is sufficient.
+In an HPC environment, (Ethernet) network can be considered as reliable. To reduce overhead, a QoS of 0 is sufficient.
 
 === Removal/reinitialisation of persistent storage on MQTT broker
 Because the MQTT broker stores the persistent messages on disk - including public SSH key data - the content and consistency of the on-disk storage
 is critical.
 
-If - for any reason - the persistent storage of the MQTT broker must be removed or reinitialised, special care must be taken to ensure integrity of `ssh_known_hosts` files on the servers.
+If - for any reason - the persistent storage of the MQTT broker must be removed or reinitialized, special care must be taken to ensure integrity of `ssh_known_hosts` files on the servers.
 It must be made sure, know server reboots or `ssh-known_hosts-updater` are restarted on any server before *all* public SSH keys are recollected, e.g. by running `ssh-key-collector` on
 all affected servers.
 
 For smooth operation, it's important to fetch all public SSH keys from all cluster servers by running `ssh-key-collector` on all servers.
 
 === Structuring grouping instead of a flat hierarchy
-Instead of a flat hierarchy public key data can be grouped by using MQTT topics. Additionaly, different MQTT user with separate ACL rules can be configured, e.g.:
+Instead of a flat hierarchy public key data can be grouped by using MQTT topics. Additionally, different MQTT user with separate ACL rules can be configured, e.g.:
 
 * Cluster CLU-001: Topic: `corp/cluster/ssh_keys/clu-001`, Users: `ssh-key-collector-clu-001` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-001` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-001` for `ssh-delete-key_data`
 * Cluster CLU-002: Topic: `corp/cluster/ssh_keys/clu-002`, Users: `ssh-key-collector-clu-002` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-002` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-002` for `ssh-delete-key_data`
