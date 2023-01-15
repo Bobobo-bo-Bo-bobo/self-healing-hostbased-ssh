@@ -295,3 +295,23 @@ Upon removal, all servers running `ssh-known_hosts-updater` will receive a notif
 
 Servers currently offline will receive the new data upon start of `ssh-known_hosts-updater` which will update the `ssh_known_hosts` file.
 
+== FAQ
+=== Which QoS to use
+MQTT has three values for QoS:
+
+* 0 - no confirmation
+* 1 - broker confirms message received
+* 2 - broker confirms message received and client confirms confirmation receival
+
+In an HPC environment, (ethernet) network can be considered as reliable. To reduce overhead, a QoS of 0 is sufficient.
+
+=== Removal/reinitialisation of persistent storage on MQTT broker
+Because the MQTT broker stores the persistent messages on disk - including public SSH key data - the content and consistency of the on-disk storage
+is critical.
+
+If - for any reason - the persistent storage of the MQTT broker must be removed or reinitialised, special care must be taken to ensure integrity of `ssh_known_hosts` files on the servers.
+It must be made sure, know server reboots or `ssh-known_hosts-updater` are restarted on any server before *all* public SSH keys are recollected, e.g. by running `ssh-key-collector` on
+all affected servers.
+
+For smooth operation, it's important to fetch all public SSH keys from all cluster servers by running `ssh-key-collector` on all servers.
+
