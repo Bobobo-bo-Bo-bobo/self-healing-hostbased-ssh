@@ -322,3 +322,11 @@ Instead of a flat hierarchy public key data can be grouped by using MQTT topics.
 * Cluster CLU-002: Topic: `corp/cluster/ssh_keys/clu-002`, Users: `ssh-key-collector-clu-002` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-002` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-002` for `ssh-delete-key_data`
 * Cluster CLU-003: Topic: `corp/cluster/ssh_keys/clu-003`, Users: `ssh-key-collector-clu-003` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-003` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-003` for `ssh-delete-key_data`
 * Cluster CLU-004: Topic: `corp/cluster/ssh_keys/clu-004`, Users: `ssh-key-collector-clu-004` for `ssh-key-collector` / `ssh-known_hosts-updater-clu-004` for `ssh-known_hosts-updater` and `ssh-delete-key_data-clu-004` for `ssh-delete-key_data`
+
+=== Dynamic IP addresses
+Although unusual in an HPC environment, dynamic IP addresses can be used too. If the application requires the hostname in the `ssh_known_hosts` file proper DNS/name lookup is required.
+
+If the application requires IP address in `ssh_known_hosts` file, the configuration file of the `ssh-key-collector` tool should be updated and `ssh-key-collector` should be run afterwards.
+
+For instance this can be done by implementing DHCP client hooks. For ISC DHCP client, see https://netbeez.net/blog/linux-dhcp-hooks-network-engineers/[Linux for Network Engineers: How to Use DHCP Hooks^] or https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/assembly_running-dhclient-exit-hooks-using-networkmanager-a-dispatcher-script_configuring-and-managing-networking[Running dhclient exit hooks using NetworkManager a dispatcher script^])
+
