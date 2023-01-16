@@ -72,7 +72,7 @@ fn main() {
     };
 
     if opts.opt_present("C") {
-        info!("configurtion file {} is valid", config_file);
+        info!("configuration file {} is valid", config_file);
         process::exit(0);
     }
 
