@@ -55,4 +55,3 @@ pub fn validate_hostname(h: &str) -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
-
