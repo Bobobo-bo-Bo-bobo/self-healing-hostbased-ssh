@@ -13,10 +13,18 @@ pub struct Configuration {
     pub ssh: Ssh,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Ssh {
     #[serde(default = "default_ssh_known_hosts_file")]
     pub known_hosts_file: String,
+}
+
+impl Default for Ssh {
+    fn default() -> Self {
+        Ssh {
+            known_hosts_file: default_ssh_known_hosts_file(),
+        }
+    }
 }
 
 fn default_ssh_known_hosts_file() -> String {
